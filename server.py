@@ -14,7 +14,21 @@ from engine import generator, providers
 from engine.queue import process_job, _get_setting
 
 BASE = os.path.dirname(os.path.abspath(__file__))
-DATA_DIR = os.environ.get("DATA_DIR", BASE)
+def _resolve_data_dir():
+    """优先用 DATA_DIR（Render 付费档挂载 /data 磁盘）；目录不存在/不可写时回退到应用目录，
+    保证免费档（无磁盘）也能启动。"""
+    cand = os.environ.get("DATA_DIR", "") or BASE
+    try:
+        os.makedirs(os.path.join(cand, "data"), exist_ok=True)
+        os.makedirs(os.path.join(cand, "generated"), exist_ok=True)
+        test = os.path.join(cand, "data", ".write_test")
+        with open(test, "w") as f:
+            f.write("ok")
+        os.remove(test)
+        return cand
+    except Exception:
+        return BASE
+DATA_DIR = _resolve_data_dir()
 DB = os.path.join(DATA_DIR, "data", "studio.db")
 GENERATED = os.path.join(DATA_DIR, "generated")
 FRONT = os.path.join(BASE, "frontend")
@@ -26,6 +40,7 @@ app = FastAPI(title="TikTok 数字人虚拟IP批量生产工作室")
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
 from fastapi.staticfiles import StaticFiles
 _uploads_dir = os.path.join(DATA_DIR, "uploads")
+os.makedirs(_uploads_dir, exist_ok=True)
 os.makedirs(_uploads_dir, exist_ok=True)
 app.mount("/uploads", StaticFiles(directory=_uploads_dir), name="uploads")
 

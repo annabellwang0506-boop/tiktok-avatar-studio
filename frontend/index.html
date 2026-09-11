@@ -364,13 +364,15 @@
       <h2>数字人提供商</h2>
       <label style="margin-top:0">生产提供商</label>
       <div style="display:flex;flex-direction:column;gap:8px">
-        <label class="chip" style="justify-content:flex-start;padding:9px 12px;border-radius:8px" data-p="mock"><input type="radio" name="prov" value="mock" style="width:auto"><b>模拟模式 mock</b>&nbsp;— 本地生成竖版标题卡视频，零成本（演示/测试）</label>
+        <label class="chip" style="justify-content:flex-start;padding:9px 12px;border-radius:8px" data-p="mock">
+        <label class="chip" style="justify-content:flex-start;padding:9px 12px;border-radius:8px" data-p="fal"><input type="radio" name="prov" value="fal" style="width:auto"><b>fal.ai 托管数字人</b>&nbsp;&mdash; 照片+音频&rarr;口播视频，零部署，推荐</label><input type="radio" name="prov" value="mock" style="width:auto"><b>模拟模式 mock</b>&nbsp;— 本地生成竖版标题卡视频，零成本（演示/测试）</label>
         <label class="chip" style="justify-content:flex-start;padding:9px 12px;border-radius:8px" data-p="heygen"><input type="radio" name="prov" value="heygen" style="width:auto"><b>HeyGen</b>&nbsp;— 北美英语数字人效果最佳，$1/分钟起（2026按量）</label>
         <label class="chip" style="justify-content:flex-start;padding:9px 12px;border-radius:8px" data-p="did"><input type="radio" name="prov" value="did" style="width:auto"><b>D-ID</b>&nbsp;— 照片即数字分身</label>
         <label class="chip" style="justify-content:flex-start;padding:9px 12px;border-radius:8px" data-p="synthesia"><input type="radio" name="prov" value="synthesia" style="width:auto"><b>Synthesia</b>&nbsp;— 企业级</label>
         <label class="chip" style="justify-content:flex-start;padding:9px 12px;border-radius:8px" data-p="local_open"><input type="radio" name="prov" value="local_open" style="width:auto"><b>LivePortrait 本地引擎</b>&nbsp;— 开源免费，照片→数字人（需 GPU 机器）</label>
       </div>
       <label>引擎地址 LIVEPORTRAIT_URL（本地 worker / 远程 GPU）</label><input id="sLp" type="text" placeholder="http://127.0.0.1:8765">
+      <label>fal.ai API Key（FAL_API_KEY，fal.ai 注册获取，形如 key:secret）</label><input id="sFal" type="password" placeholder="key:secret">
       <label>HeyGen API Key</label><input id="sHeygen" type="password" placeholder="eyJ…">
       <label>D-ID API Key</label><input id="sDid" type="password">
       <label>Synthesia API Key</label><input id="sSyn" type="password">

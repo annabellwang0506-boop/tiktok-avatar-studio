@@ -1,0 +1,659 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AVIP·Studio — 数字人虚拟IP批量生产控制台</title>
+<style>
+  :root{
+    --ink:#0A0D13; --panel:#121724; --panel2:#181F30; --line:#263046; --line2:#33405C;
+    --bone:#E9EFFA; --muted:#8C99B5; --faint:#5B6activ;
+    --cyan:#2FE1F4; --magenta:#FF3C7B; --mint:#37F0AC; --amber:#FFB224;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{
+    background:var(--ink);color:var(--bone);
+    font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+    font-size:14px;line-height:1.55;
+    min-height:100vh;padding-bottom:64px;
+    background-image:
+      radial-gradient(1200px 600px at 85% -10%, rgba(47,225,244,.07), transparent 60%),
+      radial-gradient(900px 500px at 0% 110%, rgba(255,60,123,.06), transparent 60%);
+  }
+  ::selection{background:rgba(47,225,244,.28)}
+  .num{font-family:"Arial Black",Impact,"Haettenschweiler",ui-sans-serif,sans-serif;letter-spacing:.5px}
+  .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+
+  header{
+    position:sticky;top:0;z-index:50;backdrop-filter:blur(12px);
+    background:rgba(10,13,19,.82);border-bottom:1px solid var(--line);
+    padding:10px 22px;display:flex;align-items:center;gap:18px;flex-wrap:wrap;
+  }
+  .brand{display:flex;align-items:center;gap:10px;font-weight:800;font-size:16px;letter-spacing:.4px}
+  .brand .dot{width:10px;height:10px;border-radius:50%;background:var(--cyan);box-shadow:0 0 12px var(--cyan);animation:pulse 2s infinite}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.45}}
+  .brand b{color:var(--mint)}
+  .prov-led{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted);border:1px solid var(--line);border-radius:20px;padding:3px 10px}
+  .prov-led i{width:7px;height:7px;border-radius:50%;background:var(--mint);display:inline-block}
+  .prov-led.warn i{background:var(--amber)}
+  .head-stats{margin-left:auto;display:flex;gap:16px;font-size:12px;color:var(--muted)}
+  .head-stats b{color:var(--bone);font-size:15px}
+
+  nav.tabs{position:sticky;top:47px;z-index:49;background:rgba(10,13,19,.92);border-bottom:1px solid var(--line);display:flex;gap:2px;padding:0 14px;overflow-x:auto}
+  .tab{padding:11px 16px;font-weight:700;font-size:13px;color:var(--muted);cursor:pointer;border:none;background:none;border-bottom:2px solid transparent;white-space:nowrap}
+  .tab:hover{color:var(--bone)}
+  .tab.on{color:var(--cyan);border-bottom-color:var(--cyan)}
+  .tab.on::after{content:"▸";margin-left:6px;color:var(--magenta)}
+
+  main{padding:22px;max-width:1280px;margin:0 auto}
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:18px;position:relative}
+  .panel::before{content:"";position:absolute;top:0;left:0;width:42px;height:3px;background:linear-gradient(90deg,var(--cyan),var(--magenta))}
+  .panel h2{font-size:13px;letter-spacing:1.6px;text-transform:uppercase;color:var(--muted);font-weight:700;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+  .panel h2 .num{color:var(--magenta);font-size:12px}
+  section{display:none}
+  section.on{display:block;animation:fade .25s ease}
+  @keyframes fade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+
+  .grid{display:grid;gap:16px}
+  .g4{grid-template-columns:repeat(4,1fr)}
+  .g2{grid-template-columns:repeat(2,1fr)}
+  .g3{grid-template-columns:repeat(3,1fr)}
+  @media(max-width:980px){.g4{grid-template-columns:repeat(2,1fr)}.g3{grid-template-columns:1fr}.g2{grid-template-columns:1fr}}
+
+  .stat{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:16px;position:relative;overflow:hidden}
+  .stat .v{font-size:34px;color:var(--bone);line-height:1.1}
+  .stat .l{font-size:12px;color:var(--muted);margin-top:6px;letter-spacing:.4px}
+  .stat.accent .v{color:var(--cyan)} .stat.hot .v{color:var(--magenta)} .stat.ok .v{color:var(--mint)} .stat.warn .v{color:var(--amber)}
+  .stat::after{content:"";position:absolute;right:-14px;bottom:-14px;width:60px;height:60px;border-radius:50%;background:radial-gradient(circle,color-mix(in srgb,var(--cyan) 12%,transparent),transparent 70%)}
+
+  .pipeline{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-top:4px}
+  @media(max-width:760px){.pipeline{grid-template-columns:repeat(2,1fr)}}
+  .pipe{background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:10px 12px;position:relative}
+  .pipe .no{font-size:11px;color:var(--magenta);font-weight:800}
+  .pipe .nm{font-weight:700;font-size:13px;margin-top:2px}
+  .pipe .ct{font-size:11px;color:var(--muted);margin-top:2px}
+  .pipe.live{border-color:var(--cyan);box-shadow:0 0 14px rgba(47,225,244,.15)}
+
+  label{display:block;font-size:12px;color:var(--muted);margin:10px 0 5px;letter-spacing:.3px}
+  input[type=text],input[type=password],input[type=number],select,textarea{
+    width:100%;background:var(--ink);border:1px solid var(--line);border-radius:8px;
+    color:var(--bone);padding:9px 11px;font-size:13px;outline:none;transition:border .15s;
+    font-family:inherit;
+  }
+  input:focus,select:focus,textarea:focus{border-color:var(--cyan)}
+  textarea{font-family:inherit;line-height:1.6}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  @media(max-width:700px){.row2{grid-template-columns:1fr}}
+  .btn{
+    display:inline-flex;align-items:center;gap:7px;border:1px solid var(--line2);background:var(--panel2);
+    color:var(--bone);padding:9px 15px;border-radius:8px;font-weight:700;font-size:13px;cursor:pointer;
+    transition:all .15s;font-family:inherit;
+  }
+  .btn:hover{border-color:var(--cyan);color:var(--cyan);transform:translateY(-1px)}
+  .btn.primary{background:linear-gradient(90deg,var(--cyan),#1fb7d6);border:none;color:#03222a}
+  .btn.primary:hover{filter:brightness(1.1);color:#03222a}
+  .btn.danger{color:var(--magenta)}
+  .btn.danger:hover{border-color:var(--magenta)}
+  .btn.mini{padding:4px 9px;font-size:11px;border-radius:6px}
+  .btn:disabled{opacity:.4;cursor:not-allowed;transform:none}
+  .btn:focus-visible, .tab:focus-visible{outline:2px solid var(--cyan);outline-offset:2px}
+
+  .chip{display:inline-flex;align-items:center;gap:5px;background:var(--panel2);border:1px solid var(--line);border-radius:20px;padding:3px 10px;font-size:11px;color:var(--muted);cursor:pointer}
+  .chip.on{border-color:var(--cyan);color:var(--cyan);background:rgba(47,225,244,.08)}
+  .chip .rec{width:6px;height:6px;border-radius:50%;background:transparent}
+  .chip.on .rec{background:var(--magenta);animation:pulse 1.2s infinite}
+  .tag{display:inline-block;background:rgba(47,225,244,.1);color:var(--cyan);border-radius:4px;padding:1px 7px;font-size:11px;margin:2px 2px 0 0;border:1px solid rgba(47,225,244,.25)}
+
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th{text-align:left;color:var(--muted);font-size:11px;letter-spacing:1px;text-transform:uppercase;padding:8px 10px;border-bottom:1px solid var(--line2)}
+  td{padding:9px 10px;border-bottom:1px solid var(--line)}
+  tr:hover td{background:rgba(47,225,244,.03)}
+
+  .bar{height:6px;background:var(--ink);border-radius:3px;overflow:hidden;min-width:90px}
+  .bar i{display:block;height:100%;background:linear-gradient(90deg,var(--cyan),var(--mint));border-radius:3px;transition:width .5s}
+  .bar.err i{background:linear-gradient(90deg,var(--magenta),var(--amber))}
+  .status{font-size:11px;font-weight:800;}
+  .st-done{color:var(--mint)} .st-queued{color:var(--muted)} .st-processing{color:var(--cyan)} .st-failed{color:var(--magenta)} .st-cancelled{color:var(--amber)}
+  .rec-dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--magenta);margin-right:5px;animation:pulse 1s infinite}
+
+  .avip-card{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:14px}
+  .avip-card h3{font-size:15px}
+  .avip-card .meta{font-size:11px;color:var(--muted);margin-top:6px;line-height:1.7}
+  .avip-card .hd{display:flex;justify-content:space-between;align-items:flex-start}
+  .avatar-badge{width:40px;height:40px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:16px;color:#03222a;background:linear-gradient(135deg,var(--cyan),var(--mint))}
+
+  .hook-list{display:flex;flex-direction:column;gap:8px;margin:8px 0}
+  .hook-item{border:1px solid var(--line);border-radius:8px;padding:9px 12px;cursor:pointer;font-size:13px;transition:all .12s}
+  .hook-item:hover{border-color:var(--cyan)}
+  .hook-item.on{border-color:var(--magenta);background:rgba(255,60,123,.07)}
+
+  .toast{position:fixed;bottom:74px;left:50%;transform:translateX(-50%);background:var(--panel2);border:1px solid var(--cyan);color:var(--bone);padding:10px 18px;border-radius:8px;font-size:13px;z-index:99;box-shadow:0 6px 24px rgba(0,0,0,.5);opacity:0;transition:opacity .25s;pointer-events:none}
+  .toast.show{opacity:1}
+  .toast.err{border-color:var(--magenta)}
+
+  .ticker{position:fixed;left:0;right:0;bottom:0;height:46px;background:rgba(12,16,24,.96);border-top:1px solid var(--line2);display:flex;align-items:center;overflow:hidden;z-index:60}
+  .ticker .lab{position:absolute;left:0;top:0;bottom:0;display:flex;align-items:center;gap:7px;padding:0 16px;background:linear-gradient(90deg,var(--magenta),transparent);font-weight:800;font-size:12px;letter-spacing:2px;z-index:2;color:#fff}
+  .ticker .lab i{width:7px;height:7px;border-radius:50%;background:#fff;animation:pulse 1.1s infinite}
+  .ticker .strip{display:inline-flex;gap:42px;padding-left:210px;white-space:nowrap;animation:slide 32s linear infinite;font-size:12px;color:var(--muted)}
+  .ticker .strip b{color:var(--cyan)} .ticker .strip .cst{color:var(--amber)}
+  @keyframes slide{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+  @media (prefers-reduced-motion: reduce){.ticker .strip{animation:none}.the .dot,.rec-dot{animation:none}}
+
+  .modal{position:fixed;inset:0;background:rgba(5,7,12,.8);backdrop-filter:blur(4px);display:none;align-items:center;justify-content:center;z-index:90}
+  .modal.show{display:flex}
+  .modal .box{background:var(--panel);border:1px solid var(--line2);border-radius:12px;width:min(520px,92vw);max-height:88vh;overflow:auto;padding:16px}
+  .modal video{width:100%;border-radius:8px;background:#000}
+  .modal h3{font-size:14px;margin-bottom:10px}
+
+  .empty{text-align:center;color:var(--faint,#5B6A8A);padding:26px 0;font-size:13px}
+  .kbd{font-family:ui-monospace,monospace;background:var(--ink);border:1px solid var(--line);border-radius:4px;padding:1px 6px;font-size:11px;color:var(--cyan)}
+  .steps ol{margin:6px 0 6px 20px;color:var(--muted);font-size:13px}
+  .steps li{margin:5px 0}
+  .steps b{color:var(--bone)}
+  .note{background:rgba(255,178,36,.07);border:1px solid rgba(255,178,36,.3);border-radius:8px;padding:10px 12px;font-size:12px;color:var(--amber);margin-top:10px}
+  .okbox{background:rgba(55,240,172,.06);border:1px solid rgba(55,240,172,.3);border-radius:8px;padding:10px 12px;font-size:12px;color:var(--mint);margin-top:10px}
+</style>
+</head>
+<body>
+<header>
+  <div class="brand"><span class="dot"></span>AVIP<b>·</b>Studio <span style="font-size:11px;color:var(--muted);font-weight:400">TikTok 数字人虚拟IP批量生产控制台</span></div>
+  <span class="prov-led" id="provLed"><i></i><span>provider</span></span>
+  <div class="head-stats">
+    <span>已产出 <b id="hDone">–</b></span>
+    <span>已发布 <b id="hPub">–</b></span>
+    <span>累计成本 <b class="num" style="color:var(--amber)" id="hCost">$–</b></span>
+  </div>
+</header>
+<nav class="tabs" id="tabs">
+  <button class="tab on" data-t="ov">概览</button>
+  <button class="tab" data-t="av">虚拟IP</button>
+  <button class="tab" data-t="sc">脚本工坊</button>
+  <button class="tab" data-t="bq">批量生产</button>
+  <button class="tab" data-t="pub">发布中心</button>
+  <button class="tab" data-t="st">设置</button>
+</nav>
+
+<main>
+<!-- 概览 -->
+<section id="ov" class="on">
+  <div class="grid g4" style="margin-bottom:16px">
+    <div class="stat accent"><div class="v num" id="sDone">–</div><div class="l">已产出视频</div></div>
+    <div class="stat hot"><div class="v num" id="sQueued">–</div><div class="l">生产队列中</div></div>
+    <div class="stat ok"><div class="v num" id="sPub">–</div><div class="l">已发布</div></div>
+    <div class="stat warn"><div class="v num" id="sCost">–</div><div class="l">累计生成成本估算 (USD)</div></div>
+  </div>
+  <div class="panel">
+    <h2>流水线 <span class="num" style="color:var(--muted)">PIPELINE</span></h2>
+    <div class="pipeline" id="pipeline"></div>
+  </div>
+  <div class="grid g2" style="margin-top:16px">
+    <div class="panel">
+      <h2>最近产出</h2>
+      <div id="recentJobs"></div>
+    </div>
+    <div class="panel">
+      <h2>成本参照 <span class="mono" style="color:var(--faint)">$ / 分钟</span></h2>
+      <div id="ratesBox"></div>
+      <p style="color:var(--muted);font-size:12px;margin-top:10px">HeyGen 官方 2026 API 按量计费：720p/1080p 标准生成 ≈ $1/分钟（Avatar III 引擎，Photo/数字分身/摄影棚形象同价）；Avatar IV 引擎形象 $3–4/分钟；TTS $0.04/分钟。D-ID / Synthesia 为第三方参考价，以官方为准。</p>
+    </div>
+  </div>
+</section>
+
+<!-- 虚拟IP -->
+<section id="av">
+  <div class="grid g2">
+    <div class="panel">
+      <h2>新建虚拟 IP 形象</h2>
+      <label>IP 名称（英文，将出现在视频落款）</label><input id="ipName" type="text" placeholder="Alex Carter">
+      <div class="row2">
+        <div><label>赛道 Niche</label>
+          <select id="ipNiche">
+            <option value="fitness">健身 fitness</option><option value="finance">财经 finance</option>
+            <option value="beauty">美妆 beauty</option><option value="food">美食 food</option>
+            <option value="tech">科技 tech</option><option value="motivation">励志 motivation</option>
+            <option value="pet">萌宠 pet</option><option value="travel">旅行 travel</option>
+            <option value="business">商业 business</option><option value="default">综合 default</option>
+          </select></div>
+        <div><label>形象类型</label>
+          <select id="ipKind">
+            <option value="photo_avatar">Photo Avatar（照片形象）</option>
+            <option value="digital_twin">Digital Twin（数字分身）</option>
+            <option value="studio_avatar">Studio Avatar（摄影棚形象）</option>
+          </select></div>
+      </div>
+      <div class="row2">
+        <div><label>TikTok 账号名</label><input id="ipHandle" type="text" placeholder="alexcarter.fit"></div>
+        <div><label>语音 Voice ID（HeyGen）</label><input id="ipVoice" type="text" placeholder="V7qG2k3p1s5x9jU0zM6e"></div>
+      </div>
+      <label>供应商形象 ID（HeyGen avatar_id / D-ID 图片URL）</label><input id="ipAvatarId" type="text" placeholder="avatar_id 或 https://…/avatar.png">
+      <label>本地引擎照片（上传后作为数字人形象，也可在上方贴 URL）</label>
+      <div style="display:flex;gap:8px">
+        <input id="ipPhotoFile" type="file" accept="image/*" style="width:auto;flex:1">
+        <button class="btn" onclick="uploadPhoto()">上传</button>
+        <button class="btn mini" id="ipUploadOk" style="display:none;color:var(--mint)">已上传 ✓</button>
+      </div>
+      <label>人设语气 Tone</label><input id="ipTone" type="text" value="Energetic, direct, trustworthy">
+      <button class="btn primary" style="margin-top:14px" onclick="createAvip()">创建虚拟 IP</button>
+    </div>
+    <div>
+      <div class="grid g3" id="avipList"></div>
+    </div>
+  </div>
+</section>
+
+<!-- 脚本工坊 -->
+<section id="sc">
+  <div class="grid g2">
+    <div class="panel">
+      <h2>剧本生成器</h2>
+      <label>虚拟 IP</label><select id="scAvip"></select>
+      <label>主题 Topic（英文）</label><input id="scTopic" type="text" placeholder="fast home workouts with no equipment">
+      <div class="row2">
+        <div><label>格式 Format</label>
+          <select id="scFmt">
+            <option value="listicle">清单式 Listicle</option><option value="how_to">教学式 How-to</option>
+            <option value="myth_bust">辟谣式 Myth-bust</option><option value="story">故事式 Story</option>
+            <option value="comparison">对比式 Comparison</option><option value="motivation">激励式 Motivation</option>
+            <option value="behind_scenes">幕后式 Behind-scenes</option>
+          </select></div>
+        <div><label>钩子风格</label>
+          <select id="scHook">
+            <option value="all">全风格混排</option><option value="curiosity">好奇心缺口</option>
+            <option value="bold_claim">大胆断言</option><option value="listicle">数字清单</option>
+            <option value="mistake">反常识误区</option><option value="story_open">故事开局</option>
+            <option value="question">反问问句</option><option value="pov">POV 视角</option>
+            <option value="stop_doing">立刻停止</option>
+          </select></div>
+      </div>
+      <label style="display:flex;align-items:center;gap:8px;margin-top:12px">
+        <input type="checkbox" id="scLlm" style="width:auto"> 使用 LLM 生成（OpenAI 兼容，见设置；未配置则走内置模板）
+      </label>
+      <button class="btn primary" style="margin-top:12px" onclick="genScript()">生成剧本</button>
+      <div id="scHint" style="margin-top:10px;color:var(--muted);font-size:12px">输入主题，选择格式与钩子风格后生成。内容面向北美市场（美式英语）。</div>
+    </div>
+    <div class="panel" id="scResult" style="display:none">
+      <h2>剧本预览 <span class="mono" id="scMeta" style="color:var(--faint)"></span></h2>
+      <label style="margin-top:0">钩子变体（点击选用）</label>
+      <div class="hook-list" id="scHooks"></div>
+      <label>完整口播脚本 (Script)</label>
+      <textarea id="scText" rows="8"></textarea>
+      <label>发布文案 Caption</label><textarea id="scCap" rows="2"></textarea>
+      <label>话题标签 Hashtags</label><div id="scTags" style="margin-top:4px"></div>
+      <div style="display:flex;gap:10px;margin-top:14px;flex-wrap:wrap">
+        <button class="btn" onclick="saveScript()">存入素材库</button>
+        <button class="btn primary" onclick="batchFromCurrent()">加入批量生产</button>
+      </div>
+    </div>
+  </div>
+  <div class="panel" style="margin-top:16px">
+    <h2>素材库</h2>
+    <table>
+      <thead><tr><th>ID</th><th>虚拟IP</th><th>主题</th><th>钩子</th><th>字数</th><th>时长</th><th style="text-align:right">操作</th></tr></thead>
+      <tbody id="scriptTable"></tbody>
+    </table>
+    <div class="empty" id="scriptEmpty" style="display:none">暂无素材，先在左侧生成剧本吧</div>
+  </div>
+</section>
+
+<!-- 批量生产 -->
+<section id="bq">
+  <div class="panel">
+    <h2>批量生产台 <span class="mono" style="color:var(--faint)">BATCH DESK</span></h2>
+    <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+      <span style="color:var(--muted);font-size:12px">1. 选择虚拟 IP：</span><select id="bqAvip" style="width:220px"></select>
+      <span style="color:var(--muted);font-size:12px">2. 勾选素材：</span>
+      <button class="btn mini" onclick="checkAllScripts(true)">全选</button>
+      <button class="btn mini" onclick="checkAllScripts(false)">清空</button>
+      <span style="flex:1"></span>
+      <button class="btn primary" onclick="startBatch()">开始批量生产 ▶</button>
+    </div>
+    <div style="margin-top:12px;max-height:230px;overflow:auto;border:1px solid var(--line);border-radius:8px">
+      <table>
+        <thead><tr><th style="width:30px">▣</th><th>ID</th><th>主题</th><th>钩子</th><th>时长</th><th>预计成本</th></tr></thead>
+        <tbody id="batchScripts"></tbody>
+      </table>
+    </div>
+    <div class="note">模式说明：当前生产提供商为 <b id="bqProv">–</b>。模拟模式(mock)本机生成竖版标题卡视频、零成本跑通全流程；配置真实 API KEY 后切换 heygen/did/synthesia 即产出数字人说话视频（自动片头钩子卡+片尾关注卡）。</div>
+  </div>
+  <div class="panel" style="margin-top:16px">
+    <h2>生产队列 <span class="rec-dot" id="queueRec"></span><span style="color:var(--muted);font-weight:400;letter-spacing:0" id="queueState">空闲</span></h2>
+    <div style="overflow:auto">
+    <table>
+      <thead><tr><th>#</th><th>虚拟IP</th><th>主题 / 钩子</th><th>提供商</th><th>状态</th><th style="min-width:120px">进度</th><th>成本</th><th>发布时段(ET)</th><th style="text-align:right">操作</th></tr></thead>
+      <tbody id="jobTable"></tbody>
+    </table>
+    </div>
+    <div class="empty" id="jobEmpty">还没有生产任务</div>
+  </div>
+</section>
+
+<!-- 发布中心 -->
+<section id="pub">
+  <div class="grid g2">
+    <div class="panel">
+      <h2>内容日历 <span class="mono" style="color:var(--faint)">ET 美东时段</span></h2>
+      <div style="overflow:auto"><table>
+        <thead><tr><th>日期</th><th>时段</th><th>主题</th><th>状态</th><th>视频</th></tr></thead>
+        <tbody id="calTable"></tbody>
+      </table></div>
+      <div style="display:flex;gap:10px;margin-top:14px;flex-wrap:wrap">
+        <button class="btn" onclick="exportCsv()">导出发布清单 CSV</button>
+        <button class="btn primary" onclick="publishSelected()">标记所选已发布</button>
+      </div>
+    </div>
+    <div class="panel">
+      <h2>发布通道</h2>
+      <div class="steps">
+        <ol>
+          <li><b>方案 A · 官方 API</b>：TikTok Content Posting API 免费，但公开发布需 App 审核（2–6周，需演示视频+隐私政策）。审核前仅能发布到沙箱/私密。上限 25 条/天/账号、6 请求/分钟。</li>
+          <li><b>方案 B · 已过审第三方</b>：Blotato($29/月起)、Ayrshare 等已通过审核，一个 API 接 TikTok+8 平台，可跳过自有审核。适合批量矩阵。</li>
+          <li><b>方案 C · 人工上传队列</b>：导出 CSV + 本平台视频直链，按日历时段手动/半自动发布，零审核成本，适合起步。</li>
+        </ol>
+        <div class="note">⚠️ 合规红线：TikTok 自 2023 年起要求“AI生成/合成媒体”内容明确披露（例如字幕标注 AI-generated）。数字人口播 + AI文案属合成内容，务必在 caption 或口播中标注，否则有隐形限流与下架风险。</div>
+        <div class="okbox">TikTok API 审核演示视频可以用沙箱模式录制（帖子虽强制私密，但完整流程录屏即可通过审核）。</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 设置 -->
+<section id="st">
+  <div class="grid g2">
+    <div class="panel">
+      <h2>数字人提供商</h2>
+      <label style="margin-top:0">生产提供商</label>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <label class="chip" style="justify-content:flex-start;padding:9px 12px;border-radius:8px" data-p="mock"><input type="radio" name="prov" value="mock" style="width:auto"><b>模拟模式 mock</b>&nbsp;— 本地生成竖版标题卡视频，零成本（演示/测试）</label>
+        <label class="chip" style="justify-content:flex-start;padding:9px 12px;border-radius:8px" data-p="heygen"><input type="radio" name="prov" value="heygen" style="width:auto"><b>HeyGen</b>&nbsp;— 北美英语数字人效果最佳，$1/分钟起（2026按量）</label>
+        <label class="chip" style="justify-content:flex-start;padding:9px 12px;border-radius:8px" data-p="did"><input type="radio" name="prov" value="did" style="width:auto"><b>D-ID</b>&nbsp;— 照片即数字分身</label>
+        <label class="chip" style="justify-content:flex-start;padding:9px 12px;border-radius:8px" data-p="synthesia"><input type="radio" name="prov" value="synthesia" style="width:auto"><b>Synthesia</b>&nbsp;— 企业级</label>
+        <label class="chip" style="justify-content:flex-start;padding:9px 12px;border-radius:8px" data-p="local_open"><input type="radio" name="prov" value="local_open" style="width:auto"><b>LivePortrait 本地引擎</b>&nbsp;— 开源免费，照片→数字人（需 GPU 机器）</label>
+      </div>
+      <label>引擎地址 LIVEPORTRAIT_URL（本地 worker / 远程 GPU）</label><input id="sLp" type="text" placeholder="http://127.0.0.1:8765">
+      <label>HeyGen API Key</label><input id="sHeygen" type="password" placeholder="eyJ…">
+      <label>D-ID API Key</label><input id="sDid" type="password">
+      <label>Synthesia API Key</label><input id="sSyn" type="password">
+      <button class="btn" style="margin-top:12px" onclick="testProv()">测试连接</button>
+      <span id="testOut"></span>
+    </div>
+    <div class="panel">
+      <h2>配音 / 文案智能体</h2>
+      <label style="margin-top:0">TTS 提供商</label>
+      <select id="sTts"><option value="heygen">HeyGen TTS（$0.04/分钟）</option><option value="elevenlabs">ElevenLabs</option></select>
+      <div class="row2">
+        <div><label>HeyGen Voice ID</label><input id="sHv" type="text"></div>
+        <div><label>ElevenLabs Voice ID</label><input id="sEv" type="text"></div>
+      </div>
+      <label>ElevenLabs Key</label><input id="sEk" type="password">
+      <hr style="border:none;border-top:1px solid var(--line);margin:16px 0">
+      <label>LLM Base URL（OpenAI 兼容）</label><input id="sLb" type="text" placeholder="https://api.deepseek.com/v1">
+      <div class="row2">
+        <div><label>模型</label><input id="sLm" type="text"></div>
+        <div><label>API Key</label><input id="sLk" type="password"></div>
+      </div>
+      <button class="btn primary" style="margin-top:12px" onclick="saveSettings()">保存设置</button>
+    </div>
+  </div>
+</section>
+</main>
+
+<div class="ticker"><div class="lab"><i></i>LIVE 产出流</div><div class="strip" id="tickStrip"></div></div>
+<div class="toast" id="toast"></div>
+
+<div class="modal" id="modal"><div class="box"><h3 id="mTitle">预览</h3><div id="mBody"></div></div></div>
+
+<script>
+const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+let AVIPS=[], SCRIPTS=[], CUR_SCRIPT=null, SCRIPT_PICK=null, JOB_TICK=null;
+
+async function api(path,opts={}){
+  const r=await fetch(path,{headers:{'Content-Type':'application/json'},...opts});
+  if(!r.ok){const t=await r.text().catch(()=>r.status);throw new Error(t.slice(0,200))}
+  return r.json();
+}
+function toast(msg,err=false){const t=$('#toast');t.textContent=msg;t.className='toast show'+(err?' err':'');setTimeout(()=>t.className='toast',2600)}
+
+function money(n){return '$'+(+n||0).toFixed(2)}
+
+// ---- tabs ----
+$$('.tab').forEach(b=>b.onclick=()=>{
+  $$('.tab').forEach(x=>x.classList.remove('on'));$$('section').forEach(x=>x.classList.remove('on'));
+  b.classList.add('on');$('#'+b.dataset.t).classList.add('on');
+  if(b.dataset.t==='bq'){loadScripts();loadJobs()}
+  if(b.dataset.t==='av')loadAvips();
+  if(b.dataset.t==='pub')loadCalendar();
+  if(b.dataset.t==='st')loadSettings();
+  if(b.dataset.t==='sc'){loadAvips(true)}
+});
+
+// ---- overview ----
+async function loadStats(){
+  try{
+    const s=await api('/api/stats');
+    $('#sDone').textContent=s.done;$('#sQueued').textContent=s.queued+s.running;
+    $('#sPub').textContent=s.published;$('#sCost').textContent=money(s.cost);
+    $('#hDone').textContent=s.done;$('#hPub').textContent=s.published;$('#hCost').textContent=money(s.cost);
+    const led=$('#provLed');led.querySelector('span').textContent='提供商: '+s.provider;
+    led.classList.toggle('warn',s.provider==='mock');
+    const pipes=[['剧本',s.scripts],['配音','TTS'],['数字人',s.provider+'-ed'],['后期','合成'],['发布',s.published+' 已发布']];
+    $('#pipeline').innerHTML=pipes.map((p,i)=>{
+      const live=i===0||i===2;
+      return `<div class="pipe${live?' live':''}"><div class="no">P0${i+1}</div><div class="nm">${p[0]}</div><div class="ct">${p[1]||0}</div></div>`;
+    }).join('');
+    // recent
+    const j=await api('/api/jobs?limit=6');
+    $('#recentJobs').innerHTML=j.length? j.map(jj=>`<div style="padding:8px 0;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;gap:10px">
+      <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:60%">${jj.topic||jj.hook||'#'+jj.id}</span>
+      <span class="mono" style="color:var(--amber);font-size:12px">${money(jj.cost_est)}</span></div>`).join(''):'<div class="empty">还没有产出</div>';
+    const rates=await api('/api/rates');
+    $('#ratesBox').innerHTML=`<table><thead><tr><th>形象</th><th>Avatar III</th><th>Avatar IV</th></tr></thead><tbody>
+      ${Object.entries(rates.heygen).map(([k,v])=>`<tr><td>${k}</td><td class="mono">$${v.v_iii}/min</td><td class="mono">$${v.v_iv}/min</td></tr>`).join('')}
+      <tr><td>TTS</td><td class="mono">$0.04/min</td><td class="mono">并发 10 任务</td></tr></tbody></table>`;
+  }catch(e){/*ignore*/}
+}
+
+// ---- avips ----
+async function loadAvips(alsoSel=false){
+  AVIPS=await api('/api/avips');
+  $('#avipList').innerHTML=AVIPS.map(a=>{
+    const init=(a.name||'?').slice(0,2).toUpperCase();
+    return `<div class="avip-card"><div class="hd"><div><h3>${a.name}</h3>
+      <div class="meta">赛道 <span class="tag">${a.niche}</span></div>
+      <div class="meta">形象: ${a.avatar_kind} · 账号 @${a.tiktok_handle}</div>
+      <div class="meta" style="color:var(--faint)">voice ${a.voice_id||'—'}</div></div>
+      <div class="avatar-badge">${init}</div></div></div>`;
+  }).join('');
+  const opts=AVIPS.map(a=>`<option value="${a.id}">${a.name} (@${a.tiktok_handle})</option>`).join('');
+  $('#scAvip').innerHTML=opts;$('#bqAvip').innerHTML=opts;
+  if(alsoSel && AVIPS.length)$('#scAvip').value=AVIPS[0].id;
+}
+let IP_PHOTO_URL='';
+async function uploadPhoto(){
+  const f=$('#ipPhotoFile').files[0];if(!f)return toast('请选择照片',true);
+  const fd=new FormData();fd.append('file',f);
+  const r=await fetch('/api/upload/photo',{method:'POST',body:fd});
+  if(!r.ok)return toast('上传失败',true);
+  const d=await r.json();
+  $('#ipAvatarId').value=d.url;IP_PHOTO_URL=d.url;
+  $('#ipUploadOk').style.display='inline-flex';toast('照片已上传，将作为数字人形象');
+}
+async function createAvip(){
+  const body={name:$('#ipName').value.trim(),niche:$('#ipNiche').value,tone:$('#ipTone').value,
+    avatar_kind:$('#ipKind').value,avatar_id:$('#ipAvatarId').value.trim()||'M#mock',
+    voice_id:$('#ipVoice').value.trim(),tiktok_handle:$('#ipHandle').value.trim()||'yourhandle',language:'en-US'};
+  if(!body.name)return toast('请填写 IP 名称',true);
+  await api('/api/avips',{method:'POST',body:JSON.stringify(body)});
+  toast('虚拟 IP 已创建');loadAvips(true);
+}
+
+// ---- scripts ----
+async function genScript(){
+  const avid=$('#scAvip').value;
+  if(!avid)return toast('先创建虚拟 IP',true);
+  const body={avip_id:+avid,topic:$('#scTopic').value.trim(),format:$('#scFmt').value,
+    hook_style:$('#scHook').value,use_llm:$('#scLlm').checked};
+  if(!body.topic)return toast('请输入主题',true);
+  $('#scHint').textContent='生成中…';
+  try{
+    CUR_SCRIPT=await api('/api/scripts/generate',{method:'POST',body:JSON.stringify(body)});
+    renderScript(CUR_SCRIPT);$('#scResult').style.display='block';
+    $('#scHint').textContent='已生成。可用 LLM 增强（需在设置配置 Key）。';
+    toast('剧本已生成');
+  }catch(e){$('#scHint').textContent='生成失败：'+e.message;toast('生成失败',true)}
+}
+function renderScript(s,keepHook=true){
+  $('#scMeta').textContent=`${s.word_count||0}词 · ${s.duration_seconds||30}s · ${s.format}`;
+  $('#scHooks').innerHTML=(s.hook_variants||[]).map((h,i)=>
+    `<div class="hook-item${keepHook&&i===0?' on':''}" onclick="pickHook(this,'${h.replace(/'/g,"\\'")}')">${h}</div>`).join('');
+  $('#scText').value=s.script_text;$('#scCap').value=s.caption||'';
+  $('#scTags').innerHTML=(s.hashtags||[]).map(t=>`<span class="tag">${t}</span>`).join('');
+}
+function pickHook(el,h){$$('.hook-item').forEach(x=>x.classList.remove('on'));el.classList.add('on');CUR_SCRIPT.hook=h}
+async function saveScript(){
+  if(!CUR_SCRIPT)return toast('先生成剧本',true);
+  await api('/api/scripts',{method:'POST',body:JSON.stringify({avip_id:+$('#scAvip').value,s:CUR_SCRIPT})});
+  toast('已存入素材库');loadScripts();
+}
+function batchFromCurrent(){
+  if(!CUR_SCRIPT)return toast('先生成剧本',true);
+  SCRIPT_PICK={topic:CUR_SCRIPT.topic,format:CUR_SCRIPT.format,hook_style:CUR_SCRIPT.hook_style,
+    hook:CUR_SCRIPT.hook,script_text:CUR_SCRIPT.script_text,caption:CUR_SCRIPT.caption,
+    hashtags:CUR_SCRIPT.hashtags,word_count:CUR_SCRIPT.word_count,duration_seconds:CUR_SCRIPT.duration_seconds};
+  $$('.tab').find(b=>b.dataset.t==='bq').click();toast('已加入批量生产台（临时素材），点“开始批量生产”');
+}
+async function loadScripts(){
+  SCRIPTS=await api('/api/scripts');
+  $('#scriptTable').innerHTML=SCRIPTS.map(s=>`<tr>
+    <td class="mono">#${s.id}</td><td>IP#${s.avip_id}</td><td>${s.topic}</td>
+    <td style="max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${s.hook}</td>
+    <td>${s.word_count}</td><td>${s.duration_seconds}s</td>
+    <td style="text-align:right"><button class="btn mini" onclick="delScript(${s.id})">删除</button></td></tr>`).join('');
+  $('#scriptEmpty').style.display=SCRIPTS.length?'none':'block';
+  renderBatchList();
+}
+async function delScript(id){await api('/api/scripts/'+id,{method:'DELETE'});loadScripts()}
+
+// ---- batch ----
+function renderBatchList(){
+  const checked=$('#batchScripts').querySelectorAll('input:checked').length;
+  $('#batchScripts').innerHTML=SCRIPTS.map(s=>`<tr>
+    <td><input type="checkbox" value="${s.id}" ${s.id===JSON.parse(localStorage.getItem('bqSel')||'[]').includes(s.id)?'checked':''}></td>
+    <td class="mono">#${s.id}</td><td>${s.topic}</td><td style="max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${s.hook}</td>
+    <td>${s.duration_seconds}s</td><td class="mono" style="color:var(--amber)">$${(s.duration_seconds/60).toFixed(2)}*</td></tr>`).join('');
+  if(SCRIPT_PICK){// 临时素材行
+    $('#batchScripts').insertAdjacentHTML('beforeend',`<tr style="background:rgba(255,60,123,.05)"><td><input type="checkbox" checked></td>
+      <td class="mono" style="color:var(--magenta)">TMP</td><td>${SCRIPT_PICK.topic}</td><td style="max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${SCRIPT_PICK.hook}</td>
+      <td>${SCRIPT_PICK.duration_seconds}s</td><td class="mono" style="color:var(--amber)">$${(SCRIPT_PICK.duration_seconds/60).toFixed(2)}*</td></tr>`);
+  }
+}
+function checkAllScripts(on){$('#batchScripts').querySelectorAll('input').forEach(i=>i.checked=on);localStorage.setItem('bqSel',JSON.stringify(on?SCRIPTS.map(s=>s.id):[]))}
+async function startBatch(){
+  const avid=$('#bqAvip').value;if(!avid)return toast('先选择虚拟IP',true);
+  const ids=[...$('#batchScripts').querySelectorAll('input:checked')].map(i=>i.dataset&&i.value?+i.value:null).filter(Boolean);
+  const items=[];
+  if(SCRIPT_PICK)items.push(SCRIPT_PICK);
+  for(const id of ids){items.push({script_id:id});}
+  if(!items.length)return toast('请至少勾选一个素材',true);
+  const r=await api('/api/batch',{method:'POST',body:JSON.stringify({avip_id:+avid,items})});
+  toast(`已入队 ${r.count} 条 · 提供商 ${r.provider}`);
+  $('#bqProv').textContent=r.provider;SCRIPT_PICK=null;loadJobs();startTicker();
+}
+
+function jobRow(j){
+  const stTxt={done:'完成',queued:'排队中',processing:'生产中',failed:'失败',cancelled:'已取消'}[j.status]||j.status;
+  const stCl='st-'+j.status;
+  const rec=j.status==='processing'?'<span class="rec-dot"></span>':'';
+  const bar=j.status==='failed'?'err':'';
+  const vid=j.video_path?`<button class="btn mini" onclick="previewJob(${j.id})">预览</button><button class="btn mini" onclick="dlJob(${j.id})">下载</button>`:`<span class="mono" style="color:var(--faint);font-size:11px">—</span>`;
+  const retry=j.status==='failed'?`<button class="btn mini" onclick="retryJob(${j.id})">重试</button>`:'';
+  const cancel=j.status==='queued'?`<button class="btn mini" onclick="cancelJob(${j.id})">取消</button>`:'';
+  return `<tr>
+    <td class="mono">#${j.id}</td><td>${j.avip_name||'IP#'+j.avip_id}</td>
+    <td style="max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${j.hook||''}">${j.topic||j.hook||''}</td>
+    <td class="mono" style="font-size:11px">${j.provider}</td>
+    <td class="status ${stCl}">${rec}${stTxt}<div style="font-size:10px;color:var(--faint)">${j.status_msg||''}</div></td>
+    <td><div class="bar ${bar}" style="width:110px"><i style="width:${j.progress||0}%"></i></div><span class="mono" style="font-size:10px;color:var(--faint)">${j.progress||0}%</span></td>
+    <td class="mono" style="color:var(--amber)">${money(j.cost_est)}</td>
+    <td class="mono" style="font-size:11px">${j.scheduled_date?j.scheduled_date.slice(5)+' '+j.scheduled_time_et:'—'}</td>
+    <td style="text-align:right;white-space:nowrap">${vid}${retry}${cancel}</td></tr>`;
+}
+async function loadJobs(){
+  const j=await api('/api/jobs?limit=200');
+  $('#jobTable').innerHTML=j.map(jobRow).join('');
+  $('#jobEmpty').style.display=j.length?'none':'block';
+  const running=j.some(x=>x.status==='processing'||x.status==='queued');
+  $('#queueRec').style.animation=running?'pulse 1s infinite':'none';
+  $('#queueState').textContent=running?`生产中 ${j.filter(x=>x.status!=='done').length} 条`:'空闲';
+  if(running&&!JOB_TICK){JOB_TICK=setInterval(()=>{loadJobs();loadStats()},2000)}
+  if(!running&&JOB_TICK){clearInterval(JOB_TICK);JOB_TICK=null}
+}
+function previewJob(id){$('#mTitle').textContent='视频预览 #'+id;$('#mBody').innerHTML=`<video src="/api/jobs/${id}/file" controls autoplay muted playsinline></video>`;$('#modal').classList.add('show')}
+function dlJob(id){window.location.href=`/api/jobs/${id}/file`;toast('开始下载')}
+async function retryJob(id){await api('/api/jobs/'+id+'/retry',{method:'POST'});toast('已重新排队');loadJobs()}
+async function cancelJob(id){await api('/api/jobs/'+id+'/cancel',{method:'POST'});loadJobs()}
+$('#modal').onclick=e=>{if(e.target.id==='modal')$('#modal').classList.remove('show')}
+
+// ---- publish ----
+async function loadCalendar(){
+  const d=await api('/api/calendar');
+  $('#calTable').innerHTML=d.map(x=>`<tr>
+    <td class="mono">${x.scheduled_date}</td><td class="mono" style="color:var(--cyan)">${x.scheduled_time_et}</td>
+    <td style="max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:pointer" onclick="viewJob(${x.id})" title="点击预览">${x.topic||x.hook}</td>
+    <td><span class="status ${x.published?'st-done':'st-'+x.status}">${x.published?'已发布':x.status}</span></td>
+    <td>${x.video_path?'<a class="btn mini" href="/api/jobs/'+x.id+'/file">下载</a>':'—'}</td></tr>`).join('')||'<div class="empty">暂无排期内容</div>';
+}
+function viewJob(id){$('#mTitle').textContent='视频 #'+id;$('#mBody').innerHTML=`<video src="/api/jobs/${id}/file" controls playsinline></video>`;$('#modal').classList.add('show')}
+function exportCsv(){window.location.href='/api/export.csv';toast('已导出发布清单 CSV')}
+async function publishSelected(){toast('发布说明：官方发布走 TikTok Content Posting API（需审核）；本环境已为你导出/预览。见右侧合规章节。')}
+
+// ---- settings ----
+async function loadSettings(){
+  const s=await api('/api/settings');
+  $('input[name=prov][value='+(s.provider||'mock')+']').checked=true;
+  $('#sHeygen').value=s.heygen_key!=='********'?s.heygen_key:'';$('#sDid').value=s.did_key!=='********'?s.did_key:'';
+  $('#sSyn').value=s.synthesia_key!=='********'?s.synthesia_key:'';
+  $('#sTts').value=s.tts_provider||'heygen';$('#sHv').value=s.heygen_voice_id||'';
+  $('#sEv').value=s.elevenlabs_voice_id||'';$('#sEk').value=s.elevenlabs_key!=='********'?s.elevenlabs_key:'';
+  $('#sFal').value=s.fal_key&&s.fal_key!=='********'?s.fal_key:'';
+  $('#sLb').value=s.llm_base_url||'';$('#sLm').value=s.llm_model||'';$('#sLk').value=s.llm_api_key!=='********'?s.llm_api_key:'';
+  if(s.provider)mixProvChips();
+}
+function mixProvChips(){$$('.chip[data-p]').forEach(c=>c.classList.toggle('on',c.dataset.p===$('input[name=prov]:checked').value))}
+$$('input[name=prov]').forEach(r=>r.onchange=mixProvChips);
+async function saveSettings(){
+  const p=$('input[name=prov]:checked').value;
+  const body={provider:p,fal_key:$('#sFal').value||undefined,heygen_key:$('#sHeygen').value||undefined,did_key:$('#sDid').value||undefined,
+    synthesia_key:$('#sSyn').value||undefined,tts_provider:$('#sTts').value,
+    heygen_voice_id:$('#sHv').value||undefined,elevenlabs_key:$('#sEk').value||undefined,
+    elevenlabs_voice_id:$('#sEv').value||undefined,llm_base_url:$('#sLb').value||undefined,
+    llm_model:$('#sLm').value||undefined,llm_api_key:$('#sLk').value||undefined};
+  await api('/api/settings',{method:'POST',body:JSON.stringify(body)});
+  toast('设置已保存');loadStats();
+}
+async function testProv(){
+  const p=$('input[name=prov]:checked').value;
+  if(p==='mock')return toast('模拟模式无需测试');
+  await saveSettings();
+  const r=await api('/api/settings/test?provider='+p,{method:'POST'});
+  $('#testOut').textContent=r.msg;$('#testOut').style.color=r.ok?'var(--mint)':'var(--magenta)';
+}
+
+// ---- ticker ----
+let tickData=[];
+async function startTicker(){
+  const j=await api('/api/jobs?limit=30');
+  tickData=j.filter(x=>x.video_path).map(x=>`<span><b>#${x.id}</b> ${(x.topic||x.hook||'').slice(0,46)} <span class="cst">${money(x.cost_est)}</span> <span style="color:var(--mint)">${x.published?'PUBLISHED':'READY'}</span></span>`);
+  if(tickData.length)$('#tickStrip').innerHTML=tickData.join('')+'<span>'+tickData.join('')+'</span>';
+}
+
+// ---- boot ----
+(async function boot(){
+  await Promise.all([loadStats(),loadAvips(),loadScripts(),loadCalendar()]);
+  startTicker();
+  setInterval(loadStats,8000);
+  loadJobs();
+})();
+</script>
+</body>
+</html>

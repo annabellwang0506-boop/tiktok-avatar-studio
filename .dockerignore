@@ -1,0 +1,8 @@
+generated/**
+data/**
+uploads/**
+*.mp4
+__pycache__/**
+*.pyc
+studio-src.zip
+worker_media/**

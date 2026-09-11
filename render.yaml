@@ -1,0 +1,21 @@
+# Render Blueprint —— 绑定 GitHub 仓库后，在 render.com 直接 Import 即可
+# 平台会给你一个永久域名 https://<name>.onrender.com，浏览器打开即用
+services:
+  - type: web
+    name: tiktok-avatar-studio
+    runtime: docker
+    plan: free
+    dockerfilePath: ./Dockerfile
+    envVars:
+      - key: PROVIDER
+        value: fal
+      - key: DATA_DIR
+        value: /data
+      - key: FAL_API_KEY
+        sync: false            # 在 Render 面板里填，不要写进代码仓库
+      - key: HEYGEN_VOICE_ID
+        value: V7qG2k3p1s5x9jU0zM6e
+    disk:
+      name: studio-data
+      mountPath: /data
+      sizeGB: 1                # 数据库/上传照片/成片持久化（免费版磁盘需按平台规则）

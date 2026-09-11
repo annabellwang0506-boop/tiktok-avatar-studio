@@ -1,17 +1,14 @@
 FROM python:3.12-slim
 
-ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 \
-    DATA_DIR=/app PORT=8000 PROVIDER=fal   # 默认写到应用目录(/app可写)，付费档可在环境变量改 /data
+# 默认写 /app（可写）；付费档可在环境变量改为 DATA_DIR=/data 持久化
+ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 DATA_DIR=/app PORT=8000 PROVIDER=fal
 
-RUN apt-get update && apt-get install -y --no-install-recommends \
-        ffmpeg ca-certificates && \
-    rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y --no-install-recommends ffmpeg ca-certificates && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 COPY requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
 
-# 显式拷贝核心代码目录，避免漏传子目录导致启动失败
 COPY server.py ./
 COPY engine/ ./engine/
 COPY frontend/ ./frontend/

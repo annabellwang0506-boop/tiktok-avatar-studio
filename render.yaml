@@ -15,7 +15,11 @@ services:
         sync: false            # 在 Render 面板里填，不要写进代码仓库
       - key: HEYGEN_VOICE_ID
         value: V7qG2k3p1s5x9jU0zM6e
-    disk:
-      name: studio-data
-      mountPath: /data
-      sizeGB: 1                # 数据库/上传照片/成片持久化（免费版磁盘需按平台规则）
+    # 注意：Render 免费档（free）不支持持久磁盘（disk）。
+    # 免费档数据存于实例临时文件系统，重启/重新部署后会丢失。
+    # 需要数据持久化（照片/成片/队列）请将 plan 升级到付费档（如 0.5c-512mb），
+    # 然后取消下方注释启用磁盘卷：
+    # disk:
+    #   name: studio-data
+    #   mountPath: /data
+    #   sizeGB: 1

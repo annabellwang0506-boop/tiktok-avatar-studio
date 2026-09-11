@@ -12,7 +12,6 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY server.py ./
 COPY engine/ ./engine/
 COPY frontend/ ./frontend/
-COPY liveportrait_worker.py ./ 2>/dev/null || true
 
 EXPOSE 8000
 CMD ["python", "server.py"]
